@@ -23,7 +23,6 @@
 */
 
 /*  external requirements  */
-const clone   = require("clone")
 const blessed = require("blessed")
 const Pty     = require("node-pty")
 const jsdom   = require("jsdom")
@@ -32,6 +31,7 @@ const jsdom   = require("jsdom")
 const dom = new jsdom.JSDOM()
 global.window = dom.window
 global.window.requestAnimationFrame = (cb) => setTimeout(cb, 0)
+global.window.cancelAnimationFrame = () => {}
 const document = dom.window.document
 
 /*  load xterm.js  */
@@ -41,10 +41,6 @@ const XTermJS = require("xterm")
 class XTerm extends blessed.Box {
     /*  construct the API class  */
     constructor (options = {}) {
-        /*  clone options or all widget instances will show
-            at least the same style, etc.  */
-        options = clone(options)
-
         /*  disable the special "scrollable" feature of Blessed's Element
             which would use a ScrolledBox instead of a Box under the surface  */
         options.scrollable = false
@@ -298,14 +294,7 @@ class XTerm extends blessed.Box {
         /*  on Blessed widget destruction, tear down everything  */
         this.on("destroy", () => {
             this.kill()
-            if (this._onScreenEventInput)
-                this.screen.program.input.removeListener("data", this._onScreenEventInputData)
-            if (this._onWidgetEventKeypress)
-                this.off("keypress", this._onWidgetEventKeypress)
-            if (this._onScreenEventKeypress)
-                this.removeScreenEvent("keypress", this._onScreenEventKeypress)
-            if (this._onScreenEventMouse)
-                this.removeScreenEvent("mouse", this._onScreenEventMouse)
+            this.removeListeners()
         })
 
         /*  establish the Pty  */
@@ -489,6 +478,18 @@ class XTerm extends blessed.Box {
         this.term.destroy()
     }
 
+    // /*  removeListeners  */ kill しても開放されない
+    removeListeners () {
+        if (this._onScreenEventInputData)
+            this.screen.program.input.removeListener("data", this._onScreenEventInputData)
+        if (this._onWidgetEventKeypress)
+            this.off("keypress", this._onWidgetEventKeypress)
+        if (this._onScreenEventKeypress)
+            this.removeScreenEvent("keypress", this._onScreenEventKeypress)
+        if (this._onScreenEventMouse)
+            this.removeScreenEvent("mouse", this._onScreenEventMouse)
+    }
+
     /*  spawn shell command on Pty  */
     spawn (shell, args, cwd, env) {
         /*  termine old PTY  */
@@ -540,4 +541,3 @@ class XTerm extends blessed.Box {
 
 /*  export API class the traditional way  */
 module.exports = XTerm
-
