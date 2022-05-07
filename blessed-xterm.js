@@ -31,6 +31,7 @@ const jsdom   = require("jsdom")
 const dom = new jsdom.JSDOM()
 global.window = dom.window
 global.window.requestAnimationFrame = (cb) => setTimeout(cb, 0)
+global.window.cancelAnimationFrame = () => {}
 const document = dom.window.document
 
 /*  load xterm.js  */
